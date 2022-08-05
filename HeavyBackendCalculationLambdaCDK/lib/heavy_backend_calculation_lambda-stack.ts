@@ -100,7 +100,7 @@ export class HeavyBackendCalculationLambdaStack extends cdk.Stack {
 
     // Add Triggering to CalcLambda Function
     const eventSource = new lambdaEventSources.SqsEventSource(queue, {
-      batchSize: 25,
+      batchSize: 2,
       maxBatchingWindow: Duration.seconds(30)
     });
 

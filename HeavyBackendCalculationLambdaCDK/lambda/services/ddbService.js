@@ -122,4 +122,4 @@ async function updateItemHexStore(hex, hash, nonce, jobStatus) {
     .catch((err) => console.log(err));
 }
 
-module.exports = { addNewItemToHexStore }
+module.exports = { addNewItemToHexStore, queryForHex }

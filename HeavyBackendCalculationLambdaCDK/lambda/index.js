@@ -1,5 +1,7 @@
 const HashCalculationOrchestrator = require("./objects/HashCalculationOrchestrator");
+const { queryForHex } = require("./services/ddbService");
 const { deleteMessage } = require("./services/sqsService");
+const { checkForFinishedJob } = require("./utils/utils");
 
 /**
  *
@@ -13,33 +15,36 @@ const { deleteMessage } = require("./services/sqsService");
  * as a failure if we reach overflow.
  */
 exports.handler = async function (event) {
-
   console.log("Records: ", event.Records);
- 
+
   let eventRecords = event.Records.map((record) => {
-   let res = JSON.parse(record.body);
-   res.receiptHandle = record.receiptHandle;
-   console.log("MESSAGE RES ", res);
-   return res;
+    let res = JSON.parse(record.body);
+    res.receiptHandle = record.receiptHandle;
+    console.log("MESSAGE RES ", res);
+    return res;
   });
 
   // TODO Check for finished job prior to evaluating.
   for (const job of eventRecords) {
     try {
-      console.log("JOB: ", job)
       let calculationJob = new HashCalculationOrchestrator(job.hex, job.nonce);
-    calculationJob.findHash();
-    await calculationJob.handleResults();
-    await deleteMessage(job);
-    } catch(err) {
-      console.log(`[ERROR]failed to execute calculationJob run!: ${err}`)
+      
+      // check if job has already has a successful completion. if not find hash
+      if (!(await checkForFinishedJob(job))) {
+        calculationJob.findHash();
+        await calculationJob.handleResults();
+      }
+
+      // delete sqs message from queue.
+      await deleteMessage(job);
+    } catch (err) {
+      console.log(`[ERROR]failed to execute calculationJob run!: ${err}`);
     }
-    
   }
 
   return {
     statusCode: 200,
     headers: { "Content-Type": "text/json" },
-    body: JSON.stringify({ message: `Complete Lambda Execution Successfully` }),
+    body: JSON.stringify({ message: `Heavybackend run complete` }),
   };
 };
